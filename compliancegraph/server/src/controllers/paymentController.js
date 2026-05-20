@@ -54,7 +54,7 @@ const verifyPayment = async (req, res, next) => {
           c.subscriptionPlan = $plan,
           c.subscriptionExpiresAt = $expiresAt,
           c.lastPaymentId = $paymentId
-    `, { companyId, plan, expiresAt: expiresAt.toISOString(), paymentId: razorpay_payment_id });
+    `, { companyId, plan, expiresAt: expiresAt.toISOString(), paymentId: razorpay_payment_id }, 'WRITE');
 
     res.json({ success: true, subscriptionValidUntil: expiresAt });
   } catch (err) { next(err); }

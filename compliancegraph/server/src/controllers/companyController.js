@@ -23,7 +23,7 @@ const onboardCompany = async (req, res, next) => {
           c.onboardedAt = datetime(),
           c.complianceScore = 1.0,
           c.subscriptionStatus = "trial"
-    `, { companyId, name, industryType, subIndustry, state, city, industrialZone, employeeCount: parseInt(employeeCount), gstin, registeredAddress, phone, firebaseUid });
+    `, { companyId, name, industryType, subIndustry, state, city, industrialZone, employeeCount: parseInt(employeeCount), gstin, registeredAddress, phone, firebaseUid }, 'WRITE');
 
     // Auto-find applicable license types
     const licenseTypes = await runQuery(`
@@ -59,7 +59,7 @@ const getComplianceScore = async (req, res, next) => {
         sum(CASE WHEN l.daysToExpiry < 30 AND l.status = 'active' THEN 1 ELSE 0 END) AS critical
       SET c.complianceScore = round(1.0 - (toFloat(expired + critical * 0.5) / total), 2)
       RETURN c.complianceScore AS score, total, expired, critical
-    `, { companyId });
+    `, { companyId }, 'WRITE');
     if (!records.length) return res.json({ score: 1.0, total: 0, expired: 0, critical: 0 });
     const row = records[0];
     res.json({

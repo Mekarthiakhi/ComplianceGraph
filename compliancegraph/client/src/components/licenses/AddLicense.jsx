@@ -10,7 +10,7 @@ export default function AddLicense() {
   const { company } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [applicable, setApplicable] = useState([]);
   const [form, setForm] = useState({
     licenseTypeId: '',
@@ -23,12 +23,12 @@ export default function AddLicense() {
 
   useEffect(() => {
     if (!company) return;
-    
+
     // Fetch applicable license types
     api.get(`/licenses/${company.companyId}/applicable`)
       .then(r => {
         setApplicable(r.data);
-        
+
         // Handle prefilled state passed via router state from LicenseList
         const prefilledId = location.state?.prefilledTypeId;
         if (prefilledId) {
@@ -51,12 +51,6 @@ export default function AddLicense() {
 
     setLoading(true);
     try {
-      if (!company) {
-        toast.error('No company profile found. Please complete onboarding first.');
-        setLoading(false);
-        return;
-      }
-
       await api.post('/licenses', {
         ...form,
         companyId: company.companyId
@@ -78,7 +72,7 @@ export default function AddLicense() {
       {/* Main Form Content */}
       <main className="flex-1 ml-60 p-8 min-w-0 fade-in flex items-center justify-center">
         <div className="glass-card w-full max-w-lg p-8 bg-slate-900/30 border-white/5 shadow-2xl relative">
-          
+
           {/* Header & Back Button */}
           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5">
             <button
@@ -96,7 +90,7 @@ export default function AddLicense() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {/* License Type Select */}
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -258,7 +252,7 @@ export default function AddLicense() {
               >
                 Cancel
               </button>
-              
+
               <button
                 type="submit"
                 disabled={loading}

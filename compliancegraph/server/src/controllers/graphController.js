@@ -62,7 +62,7 @@ const getBlockers = async (req, res, next) => {
       MATCH (c:Company {companyId: $companyId})-[:HOLDS]->(l:License)-[:IS_TYPE_OF]->(prereq)
       WHERE l.status IN ['expired', 'suspended', 'pending_renewal']
       RETURN prereq.name AS name, prereq.shortCode AS shortCode,
-             l.status AS status, l.expiryDate AS expiryDate,
+             l.status AS status, toString(l.expiryDate) AS expiryDate,
              length(path) AS depth
       ORDER BY depth ASC
     `, { companyId, licenseTypeId });

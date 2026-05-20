@@ -17,6 +17,7 @@ const apiLimiter = rateLimit({
   message: 'Too many requests from this IP, please try again later',
   standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
   legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  validate: { ip: false }, // Suppress IPv6 custom keyGenerator warnings
   skip: (req) => {
     // Skip rate limiting for health checks
     return req.path === '/api/health';
@@ -44,6 +45,7 @@ const authLimiter = rateLimit({
   max: 5,
   message: 'Too many login attempts, please try again after 15 minutes',
   skipSuccessfulRequests: true, // Don't count successful requests
+  validate: { ip: false }, // Suppress IPv6 custom keyGenerator warnings
   keyGenerator: (req) => req.body?.email || req.ip,
   handler: (req, res, next) => {
     logger.warn('Auth rate limit exceeded', {

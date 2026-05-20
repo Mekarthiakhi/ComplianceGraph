@@ -1,5 +1,51 @@
 const { runQuery } = require('../config/neo4j');
 
+// Helpers to format Neo4j custom Date/DateTime objects into standard JS strings
+const formatDate = (dateObj) => {
+  if (!dateObj) return null;
+  if (typeof dateObj === 'string') return dateObj;
+  
+  const year = dateObj.year?.low !== undefined ? dateObj.year.low : dateObj.year;
+  const month = dateObj.month?.low !== undefined ? dateObj.month.low : dateObj.month;
+  const day = dateObj.day?.low !== undefined ? dateObj.day.low : dateObj.day;
+
+  if (year !== undefined && month !== undefined && day !== undefined) {
+    const y = String(year);
+    const m = String(month).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(dateObj);
+};
+
+const formatDateTime = (dtObj) => {
+  if (!dtObj) return null;
+  if (typeof dtObj === 'string') return dtObj;
+  
+  const year = dtObj.year?.low !== undefined ? dtObj.year.low : dtObj.year;
+  const month = dtObj.month?.low !== undefined ? dtObj.month.low : dtObj.month;
+  const day = dtObj.day?.low !== undefined ? dtObj.day.low : dtObj.day;
+  const hour = dtObj.hour?.low !== undefined ? dtObj.hour.low : dtObj.hour;
+  const minute = dtObj.minute?.low !== undefined ? dtObj.minute.low : dtObj.minute;
+  const second = dtObj.second?.low !== undefined ? dtObj.second.low : dtObj.second;
+
+  if (year !== undefined && month !== undefined && day !== undefined) {
+    try {
+      return new Date(
+        year,
+        month - 1,
+        day,
+        hour || 0,
+        minute || 0,
+        second || 0
+      ).toISOString();
+    } catch (e) {
+      return String(dtObj);
+    }
+  }
+  return String(dtObj);
+};
+
 const addLicense = async (req, res, next) => {
   try {
     const { companyId, licenseTypeId, licenseNumber, issueDate, expiryDate, notes } = req.body;
@@ -71,7 +117,7 @@ const addLicense = async (req, res, next) => {
       issueDate, expiryDate, daysToExpiry,
       status, riskScore: daysToExpiry < 30 ? 0.9 : 0.1,
       notes: notes || ''
-    });
+    }, 'WRITE');
 
     res.json({ licenseId, status, daysToExpiry });
   } catch (err) { next(err); }
@@ -86,11 +132,17 @@ const getLicenses = async (req, res, next) => {
       RETURN l, lt, r
       ORDER BY l.daysToExpiry ASC
     `, { companyId });
-    const licenses = records.map(r => ({
-      ...r.get('l').properties,
-      licenseType: r.get('lt').properties,
-      regulator: r.get('r')?.properties || null
-    }));
+    const licenses = records.map(r => {
+      const lProps = r.get('l').properties;
+      return {
+        ...lProps,
+        issueDate: formatDate(lProps.issueDate),
+        expiryDate: formatDate(lProps.expiryDate),
+        createdAt: formatDateTime(lProps.createdAt),
+        licenseType: r.get('lt').properties,
+        regulator: r.get('r')?.properties || null
+      };
+    });
     res.json(licenses);
   } catch (err) { next(err); }
 };
@@ -107,11 +159,19 @@ const getApplicableLicenses = async (req, res, next) => {
       RETURN lt, l
       ORDER BY lt.penaltySeverity DESC
     `, { companyId });
-    const result = records.map(r => ({
-      licenseType: r.get('lt').properties,
-      held: r.get('l') !== null,
-      license: r.get('l')?.properties || null
-    }));
+    const result = records.map(r => {
+      const lProps = r.get('l')?.properties || null;
+      return {
+        licenseType: r.get('lt').properties,
+        held: r.get('l') !== null,
+        license: lProps ? {
+          ...lProps,
+          issueDate: formatDate(lProps.issueDate),
+          expiryDate: formatDate(lProps.expiryDate),
+          createdAt: formatDateTime(lProps.createdAt)
+        } : null
+      };
+    });
     res.json(result);
   } catch (err) { next(err); }
 };
@@ -123,7 +183,7 @@ const updateLicenseStatus = async (req, res, next) => {
     await runQuery(`
       MATCH (l:License {licenseId: $licenseId})
       SET l.status = $status, l.notes = $notes, l.updatedAt = datetime()
-    `, { licenseId, status, notes: notes || '' });
+    `, { licenseId, status, notes: notes || '' }, 'WRITE');
     res.json({ updated: true });
   } catch (err) { next(err); }
 };
